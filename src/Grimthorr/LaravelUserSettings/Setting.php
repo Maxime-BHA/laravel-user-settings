@@ -89,33 +89,6 @@ class Setting {
         }
     }
 
-    /**
-     * Set connection method to set a custom configuration directly.
-     *
-     * @return void
-     * @throws Grimthorr\LaravelUserSettings\ConnectionException
-     */
-    public function setConnection(array $params)
-    {
-        $required_params = [
-            'table',
-            'column',
-            'custom_constraint',
-            'default_constraint_value'
-        ];
-        
-        if(array_key_exists($required_params, $params) && !empty($params) && !empty($table))
-        {
-            $this->column = $params['column'];
-            $this->custom_constraint = $params['custom_constraint'];
-            $this->constraint_key = $params['constraint_key'];
-            $this->default_constraint_value = $params['default_constraint_value'];
-            
-        } else {
-            throw new ConnectionException;
-        }
-        
-    }
 
     /**
      * Get the value of a specific setting.
@@ -125,10 +98,13 @@ class Setting {
      * @param string $constraint_value
      * @return mixed
      */
-    public function get($key, $default = null, $constraint_value = null)
+    public function get($key, $default = null, $constraint_value = null, $params = null)
     {
 		$constraint_value = $this->getConstraintValue($constraint_value);
-        $this->check($constraint_value);
+         if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
 
         return array_get($this->settings[$constraint_value], $key, $default);
     }
@@ -141,9 +117,14 @@ class Setting {
 	 * @param string $constraint_value
      * @return void
      */
-    public function set($key, $value = null, $constraint_value = null)
+    public function set($key, $value = null, $constraint_value = null, $params = null)
     {
 		$constraint_value = $this->getConstraintValue($constraint_value);
+        if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
+
         $this->check($constraint_value);
 
         $this->dirty[$constraint_value] = true;
@@ -164,9 +145,14 @@ class Setting {
 	 * @param string $constraint_value
      * @return void
      */
-    public function forget($key, $constraint_value = null)
+    public function forget($key, $constraint_value = null, $params = null)
     {
 		$constraint_value = $this->getConstraintValue($constraint_value);
+        if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
+
         $this->check($constraint_value);
 
         if (array_key_exists($key, $this->settings[$constraint_value])) {
@@ -183,9 +169,14 @@ class Setting {
      * @param string $constraint_value
      * @return bool
      */
-    public function has($key, $constraint_value = null)
+    public function has($key, $constraint_value = null, $params = null)
     {
 		$constraint_value = $this->getConstraintValue($constraint_value);
+        if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
+
         $this->check($constraint_value);
 
         if (!array_key_exists($constraint_value, $this->settings)) {
@@ -201,9 +192,15 @@ class Setting {
 	 * @param string $constraint_value
      * @return array
      */
-    public function all($constraint_value = null)
+    public function all($constraint_value = null, $params = null)
     {
+
 		$constraint_value = $this->getConstraintValue($constraint_value);
+        if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
+
         $this->check($constraint_value);
 
         return $this->settings[$constraint_value];
@@ -215,9 +212,14 @@ class Setting {
 	 * @param string $constraint_value
      * @return void
      */
-    public function save($constraint_value = null)
+    public function save($constraint_value = null, $params = null)
     {
 		$constraint_value = $this->getConstraintValue($constraint_value);
+        if(!is_null($params))
+        {
+            $this->check($constraint_value, $params);
+        }
+
         $this->check($constraint_value);
 
         if ($this->dirty[$constraint_value]) {
@@ -244,8 +246,13 @@ class Setting {
      * @param string $constraint_value
      * @return void
      */
-    public function load($constraint_value = null)
+    public function load($constraint_value = null, $params = null)
     {
+        if(!is_null($params))
+        {
+            $this->loadTable($params);
+        }
+
 		$constraint_value = $this->getConstraintValue($constraint_value);
 		$constraint_query = $this->getConstraintQuery($constraint_value);
         $json = \DB::table($this->table)
@@ -265,8 +272,13 @@ class Setting {
      * @param string $constraint_value
      * @return void
      */
-    protected function check($constraint_value)
-    {
+    protected function check($constraint_value, $params = null)
+    {   
+        if(!is_null($params))
+        {
+            $this->loadTable($params);
+        }
+
         if (empty($this->loaded[$constraint_value])) {
             $this->load($constraint_value);
             $this->loaded[$constraint_value] = true;
@@ -294,5 +306,21 @@ class Setting {
     {
 		return $this->custom_constraint ?: $this->constraint_key . ' = ' . $constraint_value;
 	}
+
+    protected function loadTable($params = null)
+    {   
+        $required = [
+            'table',
+            'column',
+            'constraint_key',
+        ];
+
+        if(is_array($params) && count(array_intersect_key(array_flip($required), $params)) === count($required))
+        {   
+            $this->table = $params['table'];
+            $this->column = $params['column'];
+            $this->constraint_key = $params['constraint_key'];
+        }
+    }
 
 }
