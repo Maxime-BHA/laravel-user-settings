@@ -89,6 +89,33 @@ class Setting {
         }
     }
 
+    /**
+     * Set connection method to set a custom configuration directly.
+     *
+     * @return void
+     * @throws Grimthorr\LaravelUserSettings\ConnectionException
+     */
+    public function setConnection(array $params)
+    {
+        $required_params = [
+            'table',
+            'column',
+            'custom_constraint',
+            'default_constraint_value'
+        ];
+        
+        if(array_key_exists($required_params, $params) && !empty($params) && !empty($table))
+        {
+            $this->column = $params['column'];
+            $this->custom_constraint = $params['custom_constraint'];
+            $this->constraint_key = $params['constraint_key'];
+            $this->default_constraint_value = $params['default_constraint_value'];
+            
+        } else {
+            throw new ConnectionException;
+        }
+        
+    }
 
     /**
      * Get the value of a specific setting.
