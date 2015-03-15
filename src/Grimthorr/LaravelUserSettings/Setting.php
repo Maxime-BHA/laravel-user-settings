@@ -106,6 +106,8 @@ class Setting {
             $this->check($constraint_value, $params);
         }
 
+        $this->check($constraint_value);
+
         return array_get($this->settings[$constraint_value], $key, $default);
     }
 
